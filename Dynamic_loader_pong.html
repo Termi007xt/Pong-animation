@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Prompting Pong</title>
+    <style>
+      body {
+        margin: 0;
+        background: black;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+        margin: auto;
+        background-color: #0b0b0b;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- ✅ Load ASCII text first -->
+    <script src="ascii_output.js"></script>
+
+    <!-- ✅ Now your main script logic -->
+    <script>
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      canvas.width = 1200;
+      canvas.height = 600;
+
+      const gridSize = 20;
+      const smallGridSize = 10;
+      const chars = [];
+      const waves = [];
+
+      function loadHardcodedText() {
+        const offsetX = 250;
+        const offsetY = 100;
+
+        pixelText.forEach((line, row) => {
+          line.split("").forEach((char, col) => {
+            if (char === "#") {
+              chars.push({
+                x: offsetX + col * gridSize,
+                y: offsetY + row * gridSize,
+                size: gridSize,
+                hit: false,
+              });
+            }
+          });
+        });
+
+        const smallOffsetX = 220;
+        const smallOffsetY = 420;
+
+        pixelTextSmall.forEach((line, row) => {
+          line.split("").forEach((char, col) => {
+            if (char === "#") {
+              chars.push({
+                x: smallOffsetX + col * smallGridSize,
+                y: smallOffsetY + row * smallGridSize,
+                size: smallGridSize,
+                hit: false,
+              });
+            }
+          });
+        });
+      }
+
+      let ball = {
+        x: canvas.width / 2,
+        y: canvas.height / 2,
+        dx: 3,
+        dy: 2,
+        radius: 12,
+      };
+
+      const platforms = [
+        { x: 0, y: 100, width: 15, height: 200, axis: "y" },
+        { x: canvas.width - 15, y: 100, width: 15, height: 200, axis: "y" },
+        { x: 400, y: 0, width: 200, height: 15, axis: "x" },
+        { x: 400, y: canvas.height - 15, width: 200, height: 15, axis: "x" },
+      ];
+
+      function updateBall() {
+        ball.x += ball.dx;
+        ball.y += ball.dy;
+
+        if (ball.x <= 0 || ball.x >= canvas.width) ball.dx *= -1;
+        if (ball.y <= 0 || ball.y >= canvas.height) ball.dy *= -1;
+
+        for (let i = 0; i < chars.length; i++) {
+          const c = chars[i];
+          if (c.hit) continue;
+          const dx = Math.abs(ball.x - c.x);
+          const dy = Math.abs(ball.y - c.y);
+          if (dx < ball.radius + c.size / 2 && dy < ball.radius + c.size / 2) {
+            c.hit = true;
+            waves.push({ x: ball.x, y: ball.y, radius: 0, alpha: 1 });
+            if (dx > dy) {
+              ball.dx *= -1;
+            } else {
+              ball.dy *= -1;
+            }
+            break;
+          }
+        }
+
+        platforms.forEach((p) => {
+          if (
+            ball.x + ball.radius > p.x &&
+            ball.x - ball.radius < p.x + p.width &&
+            ball.y + ball.radius > p.y &&
+            ball.y - ball.radius < p.y + p.height
+          ) {
+            waves.push({ x: ball.x, y: ball.y, radius: 0, alpha: 1 });
+            if (p.axis === "y") ball.dx *= -1;
+            else ball.dy *= -1;
+          }
+        });
+      }
+
+      function movePlatforms() {
+        platforms.forEach((p) => {
+          const target =
+            p.axis === "y" ? ball.y - p.height / 2 : ball.x - p.width / 2;
+          const smoothFactor = 0.3;
+          if (p.axis === "y") {
+            p.y += (target - p.y) * smoothFactor;
+            p.y = Math.max(0, Math.min(canvas.height - p.height, p.y));
+          } else {
+            p.x += (target - p.x) * smoothFactor;
+            p.x = Math.max(0, Math.min(canvas.width - p.width, p.x));
+          }
+        });
+      }
+
+      function drawWaves() {
+        for (let i = waves.length - 1; i >= 0; i--) {
+          const w = waves[i];
+          ctx.beginPath();
+          ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255,255,255,${w.alpha})`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          w.radius += 2;
+          w.alpha -= 0.02;
+          if (w.alpha <= 0) waves.splice(i, 1);
+        }
+      }
+
+      function draw() {
+        const gradSize = 40;
+        for (let y = 0; y < canvas.height; y += gradSize) {
+          for (let x = 0; x < canvas.width; x += gradSize) {
+            const brightness =
+              20 + Math.floor(10 * Math.sin((x + y + Date.now() / 5) * 0.01));
+            ctx.fillStyle = `rgb(${brightness}, ${brightness}, ${brightness})`;
+            ctx.fillRect(x, y, gradSize, gradSize);
+          }
+        }
+
+        drawWaves();
+
+        chars.forEach((c) => {
+          ctx.fillStyle = c.hit ? "#222b55" : "#00ccff";
+          ctx.shadowColor = c.hit ? "#111433" : "#00ccff";
+          ctx.shadowBlur = 10;
+          ctx.fillRect(c.x - c.size / 2, c.y - c.size / 2, c.size, c.size);
+          ctx.shadowBlur = 0;
+        });
+
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "white";
+        platforms.forEach((p) => {
+          ctx.fillRect(p.x, p.y, p.width, p.height);
+        });
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        updateBall();
+        movePlatforms();
+        draw();
+      }
+
+      // ✅ Load text and start animation AFTER everything is ready
+      window.onload = () => {
+        loadHardcodedText();
+        animate();
+      };
+    </script>
+  </body>
+</html>
