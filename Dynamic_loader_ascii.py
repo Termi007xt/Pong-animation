@@ -26,4 +26,4 @@ def save_ascii_to_js(text, var_name, file_path, ascii_art, mode='w'):
 
 # Example usage
 save_ascii_to_js("Maulik\nSharma", "pixelText", "ascii_output.js", ascii_art)
-save_ascii_to_js("MASTER OF CODE", "pixelTextSmall", "ascii_output.js", ascii_art, mode='a')
+save_ascii_to_js("Code.Commit.Repeat", "pixelTextSmall", "ascii_output.js", ascii_art, mode='a')
