@@ -273,3 +273,7 @@ For issues, questions, or feature requests, please refer to the project document
 - Dual text support
 - HTML export
 - Comprehensive GUI controls
+
+## Deployment
+
+For deploying to Vercel, see [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions.
